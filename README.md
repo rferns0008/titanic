@@ -76,3 +76,44 @@ python3 ./src/train.py \
 - The training pipeline uses a `RandomForestClassifier`.
 - Preprocessing includes title extraction, missing value handling, encoding, and feature construction.
 - Ensure the virtual environment is activated before running scripts.
+
+## DVC + Backblaze B2 (S3-compatible) integration
+
+This project uses DVC to manage large data files. In CI/CD and local runs we use Backblaze B2 via its S3-compatible API.
+
+CI requirements
+- Add the following GitHub repository secrets:
+   - `B2_KEY_ID` — Backblaze S3-compatible application Key ID
+   - `B2_APP_KEY` — Backblaze application Key (secret)
+   - `B2_REGION` — Backblaze region code (e.g. `us-west-000`, `eu-central-003`)
+
+The GitHub workflows are configured to install `dvc[s3]` and run `dvc pull` using these secrets before tests and CD steps.
+
+Local development
+- Recommended: create and activate the virtualenv in the repo root:
+
+```bash
+python3 -m venv .venv.nosync
+source .venv.nosync/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -r requirements.txt
+python3 -m pip install "dvc[s3]"
+```
+
+- Export your Backblaze S3-compatible credentials in the shell where you run training:
+
+```bash
+export AWS_ACCESS_KEY_ID="YOUR_B2_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="YOUR_B2_APP_KEY"
+export AWS_DEFAULT_REGION="your-region-code"
+```
+
+Helper script
+- Use the provided helper to pull data and run training. It will source `.venv.nosync` if present, run `dvc pull`, then run the training script:
+
+```bash
+./scripts/run_train.sh --train-csv data/train.csv --model-output models/titanic_model.pkl
+```
+
+You can skip the automatic `dvc pull` by setting `SKIP_DVC_PULL=1` in the environment.
+

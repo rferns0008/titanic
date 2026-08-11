@@ -1,5 +1,5 @@
 [core]
-    remote = localremote
-    autostage = true
-['remote "localremote"']
-    url = /Users/rahulfernandes/dvc-storage
+    remote = b2remote
+['remote "b2remote"']
+    url = s3://titanic-data
+    endpointurl = https://s3.eu-central-003.backblazeb2.com
