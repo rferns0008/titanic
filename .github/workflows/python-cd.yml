@@ -27,10 +27,21 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
-          python -m pip install pytest dvc
+          python -m pip install pytest
+          # Install DVC with S3 support so CD can pull and push to Backblaze B2
+          python -m pip install "dvc[s3]"
 
       - name: Pull DVC data
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
+        if: ${{ env.AWS_ACCESS_KEY_ID != '' && env.AWS_SECRET_ACCESS_KEY != '' }}
         run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "Skipping DVC pull: Backblaze credentials are not configured."
+            exit 0
+          fi
           dvc pull
 
       - name: Run unit tests

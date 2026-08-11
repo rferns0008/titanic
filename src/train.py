@@ -4,6 +4,8 @@ import argparse
 from pathlib import Path
 
 import pickle
+import subprocess
+import os
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -113,6 +115,16 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+
+    # Attempt to pull DVC-tracked data from configured remote before training.
+    # Set environment variable `SKIP_DVC_PULL=1` to skip this behavior (useful for tests).
+    if not os.environ.get('SKIP_DVC_PULL'):
+        try:
+            subprocess.run(["dvc", "pull"], check=True)
+        except FileNotFoundError:
+            print("dvc executable not found in PATH; skipping 'dvc pull'.")
+        except subprocess.CalledProcessError:
+            print("'dvc pull' returned a non-zero exit code; continuing anyway.")
 
     train_model(args.train_csv, args.model_output, random_state=args.random_state)
 

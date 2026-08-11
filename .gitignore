@@ -1,1 +1,38 @@
+# Ignore DVC-managed data directory
 /data
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+.venv.nosync/
+env/
+venv/
+ENV/
+
+# DVC local config and internal state
+.dvc/config.local
+.dvc/tmp/
+.dvc/cache/
+
+# Generated model and output artifacts
+models/
+outputs/
+
+# Editor and OS files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Test artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Environment files
+.env
+*.env
