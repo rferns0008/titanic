@@ -35,13 +35,12 @@ jobs:
           python -m pip install "dvc[s3]"
 
       - name: Pull DVC data
-        if: ${{ secrets.B2_KEY_ID && secrets.B2_APP_KEY }}
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
+          B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
           AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
-        run: |
-          dvc pull || true
+        if: ${{ env.B2_KEY_ID != '' && env.B2_APP_KEY != '' }}
+        run: dvc pull
 
       - name: Run unit tests
         env:
