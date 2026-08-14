@@ -8,7 +8,7 @@ Add the following secrets in your repository Settings → Secrets → Actions:
 
 - `B2_KEY_ID` — Backblaze S3-compatible application Key ID (use the app key ID)
 - `B2_APP_KEY` — Backblaze application Key (the secret)
-- `B2_REGION` — Backblaze region code (example: `us-west-000`, `eu-central-003`)
+- `B2_REGION` — Backblaze region code (example: `eu-central-003`)
 
 These secrets are used in the GitHub Actions workflows to run `dvc pull` before tests and deployments.
 

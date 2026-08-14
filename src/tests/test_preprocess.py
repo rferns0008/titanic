@@ -1,6 +1,9 @@
 import pandas as pd
 
-from preprocess import extract_title, preprocess_features
+try:
+    from src.preprocess import extract_title, preprocess_features
+except ModuleNotFoundError:  # pragma: no cover - compatibility for direct script execution
+    from preprocess import extract_title, preprocess_features
 
 
 def test_extract_title_handles_missing_name():

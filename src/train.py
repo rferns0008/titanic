@@ -1,18 +1,19 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-
+import os
 import pickle
 import subprocess
-import os
+from pathlib import Path
 
-import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.model_selection import train_test_split
 
-from preprocess import load_data, preprocess_features
+try:
+    from src.preprocess import load_data, preprocess_features
+except ModuleNotFoundError:  # pragma: no cover - compatibility for direct script execution
+    from preprocess import load_data, preprocess_features
 
 
 WORKSPACE_ROOT = Path(__file__).resolve().parents[1]
@@ -27,7 +28,7 @@ def build_model(random_state: int = 42) -> RandomForestClassifier:
     )
 
 
-def train_model(train_csv: Path, model_path: Path, random_state: int = 42) -> None:
+def train_model(train_csv: Path, model_path: Path, random_state: int = 42) -> dict:
     df = load_data(train_csv)
     X, y = preprocess_features(df, training=True)
 
@@ -44,6 +45,10 @@ def train_model(train_csv: Path, model_path: Path, random_state: int = 42) -> No
 
     y_pred = model.predict(X_valid)
     accuracy = accuracy_score(y_valid, y_pred)
+    metrics = {
+        'accuracy': accuracy,
+        'classification_report': classification_report(y_valid, y_pred, digits=4),
+    }
 
     model_path.parent.mkdir(parents=True, exist_ok=True)
     with open(model_path, 'wb') as model_file:
@@ -53,33 +58,12 @@ def train_model(train_csv: Path, model_path: Path, random_state: int = 42) -> No
     print(f'Model saved to: {model_path}')
     print(f'Validation accuracy: {accuracy:.4f}')
     print('\nClassification report:')
-    print(classification_report(y_valid, y_pred, digits=4))
-
-
-def predict(test_csv: Path, model_path: Path, output_path: Path) -> None:
-    df = load_data(test_csv)
-    X, _ = preprocess_features(df, training=False)
-
-    with open(model_path, 'rb') as model_file:
-        model = pickle.load(model_file)
-    predictions = model.predict(X)
-
-    result = pd.DataFrame(
-        {
-            'PassengerId': df['PassengerId'],
-            'Survived': predictions.astype(int),
-        }
-    )
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    result.to_csv(output_path, index=False)
-    print(f'Predictions written to: {output_path}')
+    print(metrics['classification_report'])
+    return metrics
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description='Train a Titanic classifier and optionally score a test set.'
-    )
+    parser = argparse.ArgumentParser(description='Train a Titanic classifier.')
     parser.add_argument(
         '--train-csv',
         type=Path,
@@ -93,18 +77,6 @@ def parse_args() -> argparse.Namespace:
         help='Where to save the trained model.',
     )
     parser.add_argument(
-        '--test-csv',
-        type=Path,
-        default=None,
-        help='Optional path to a test CSV file for prediction.',
-    )
-    parser.add_argument(
-        '--predictions-output',
-        type=Path,
-        default=WORKSPACE_ROOT / 'outputs' / 'test_predictions.csv',
-        help='Where to write test predictions if --test-csv is provided.',
-    )
-    parser.add_argument(
         '--random-state',
         type=int,
         default=42,
@@ -116,20 +88,15 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    # Attempt to pull DVC-tracked data from configured remote before training.
-    # Set environment variable `SKIP_DVC_PULL=1` to skip this behavior (useful for tests).
     if not os.environ.get('SKIP_DVC_PULL'):
         try:
-            subprocess.run(["dvc", "pull"], check=True)
+            subprocess.run(['dvc', 'pull'], check=True)
         except FileNotFoundError:
             print("dvc executable not found in PATH; skipping 'dvc pull'.")
         except subprocess.CalledProcessError:
             print("'dvc pull' returned a non-zero exit code; continuing anyway.")
 
     train_model(args.train_csv, args.model_output, random_state=args.random_state)
-
-    if args.test_csv is not None:
-        predict(args.test_csv, args.model_output, args.predictions_output)
 
 
 if __name__ == '__main__':
