@@ -13,6 +13,10 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,20 +32,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install pytest
-          # Install DVC with S3 support so CD can pull and push to Backblaze B2
           python -m pip install "dvc[s3]"
 
       - name: Pull DVC data
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
         if: ${{ env.AWS_ACCESS_KEY_ID != '' && env.AWS_SECRET_ACCESS_KEY != '' }}
         run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "Skipping DVC pull: Backblaze credentials are not configured."
-            exit 0
-          fi
           dvc pull
 
       - name: Run unit tests
@@ -51,6 +46,8 @@ jobs:
           python -m pytest src/tests
 
       - name: Train model and generate predictions
+        env:
+          SKIP_DVC_PULL: 'true'
         run: |
           python src/train.py --train-csv data/train.csv --model-output models/titanic_model.pkl
           python src/test.py --test-csv data/test.csv --model-path models/titanic_model.pkl --predictions-output outputs/test_predictions.csv
