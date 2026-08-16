@@ -226,9 +226,9 @@ python3 -m pip install "dvc[s3]"
 - Export your Backblaze S3-compatible credentials in the shell where you run training:
 
 ```bash
-export AWS_ACCESS_KEY_ID="YOUR_B2_KEY_ID"
-export AWS_SECRET_ACCESS_KEY="YOUR_B2_APP_KEY"
-export AWS_DEFAULT_REGION="your-region-code"
+export AWS_ACCESS_KEY_ID="003219d1b4ac7a60000000001"
+export AWS_SECRET_ACCESS_KEY="K003qb9nnXFSW8zl+CEJGPVSxwrmb54"
+export AWS_DEFAULT_REGION="eu-central-003"
 ```
 
 Helper script
