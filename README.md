@@ -102,7 +102,7 @@ record = {
 
 # Make prediction
 result = predict_single_record(
-    model_path=Path('models/titanic_model.pkl'),
+    model_path=Path("models/titanic_model.pkl"),
     record=record
 )
 
@@ -112,13 +112,13 @@ print(result)
 Expected output:
 ```python
 {
-    'prediction': 1,
-    'prediction_label': 'Survived',
-    'probability': {
-        'did_not_survive': 0.15,
-        'survived': 0.85
+    "prediction": 1,
+    "prediction_label": "Survived",
+    "probability": {
+        "did_not_survive": 0.15,
+        "survived": 0.85
     },
-    'confidence': 0.85
+    "confidence": 0.85
 }
 ```
 
@@ -129,7 +129,7 @@ Use the CLI with a JSON string containing passenger features:
 ```bash
 python src/predict.py \
   --model-path models/titanic_model.pkl \
-  --record '{"Name": "Doe, Miss. Jane", "Pclass": 1, "Sex": "female", "Age": 25.0, "SibSp": 1, "Parch": 0, "Fare": 512.33, "Embarked": "S"}'
+  --record "{"Name": "Doe, Miss. Jane", "Pclass": 1, "Sex": "female", "Age": 25.0, "SibSp": 1, "Parch": 0, "Fare": 512.33, "Embarked": "S"}"
 ```
 
 This will output the prediction result, probability distribution, and confidence score for the single passenger record.
@@ -137,7 +137,7 @@ This will output the prediction result, probability distribution, and confidence
 ### Required fields for prediction
 
 The following fields are **required** for making predictions:
-- `Name` - Passenger name (format: "Last, Title. First" e.g., "Doe, Miss. Jane")
+- `Name" - Passenger name (format: "Last, Title. First" e.g., "Doe, Miss. Jane")
 - `Pclass` - Passenger class (1, 2, or 3)
 - `Sex` - Gender ("male" or "female")
 - `Age` - Passenger age (numeric)
@@ -154,12 +154,12 @@ Example:
 ```bash
 python src/predict.py \
   --model-path models/titanic_model.pkl \
-  --record '{"Name": "Smith, Master. Thomas", "Pclass": 3, "Sex": "male", "Age": 8.0, "SibSp": 1, "Parch": 1, "Fare": 50.0, "Embarked": "S"}'
+  --record "{"Name": "Smith, Master. Thomas", "Pclass": 3, "Sex": "male", "Age": 8.0, "SibSp": 1, "Parch": 1, "Fare": 50.0, "Embarked": "S"}"
 ```
 
 Output:
 ```
-{'prediction': 1, 'prediction_label': 'Survived', 'probability': {'did_not_survive': 0.0, 'survived': 1.0}, 'confidence': 1.0, 'note': 'Children aged 0-15 are predicted to have survived (historical context: children had priority in lifeboats)'}
+{"prediction": 1, "prediction_label": "Survived", "probability": {"did_not_survive": 0.0, "survived": 1.0}, "confidence": 1.0, "note": "Children aged 0-15 are predicted to have survived (historical context: children had priority in lifeboats)"}
 ```
 
 ## Custom paths
