@@ -90,14 +90,14 @@ from pathlib import Path
 
 # Define a passenger record
 record = {
-    'Name': 'Doe, Miss. Jane',
-    'Pclass': 1,
-    'Sex': 'female',
-    'Age': 25.0,
-    'SibSp': 1,
-    'Parch': 0,
-    'Fare': 512.33,
-    'Embarked': 'S'
+    "Name": "Doe, Miss. Jane",
+    "Pclass": 1,
+    "Sex": "female",
+    "Age": 25.0,
+    "SibSp": 1,
+    "Parch": 0,
+    "Fare": 512.33,
+    "Embarked": "S"
 }
 
 # Make prediction
