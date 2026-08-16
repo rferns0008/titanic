@@ -5,12 +5,10 @@ FastAPI application for Titanic ML model serving.
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 import logging
-from typing import Optional
 import pickle
-from pathlib import Path
-
+from contextlib import asynccontextmanager
+import pandas as pd
 from config import settings
-
 
 # Configure logging
 logging.basicConfig(
@@ -19,46 +17,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
-# Initialize FastAPI app
-app = FastAPI(
-    title=settings.api_title,
-    version=settings.api_version,
-    description=settings.api_description,
-    debug=settings.debug,
-)
-
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=settings.cors_allow_credentials,
-    allow_methods=settings.cors_allow_methods,
-    allow_headers=settings.cors_allow_headers,
-)
-
-
-# Load model on startup
+# Global model variable
 model = None
-preprocessor = None
-
 
 def preprocess_prediction_input(features: dict) -> list:
     """
     Preprocess raw prediction input to match training format.
-    
-    Input example:
-    {
-        "Pclass": 3,
-        "Sex": "male",
-        "Age": 22.0,
-        "SibSp": 1,
-        "Parch": 0,
-        "Fare": 7.25,
-        "Embarked": "S",
-        "Title": "Mr"  # optional, defaults to "Unknown"
-    }
     """
     try:
         # Extract and validate basic features
@@ -102,45 +66,51 @@ def preprocess_prediction_input(features: dict) -> list:
     except (ValueError, KeyError) as e:
         raise ValueError(f"Feature preprocessing failed: {str(e)}")
 
-
-@app.on_event("startup")
-async def load_model():
-    """Load the trained model and preprocessor on application startup."""
-    global model, preprocessor
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Load the trained model on application startup, and cleanup on shutdown."""
+    global model
     
+    # --- STARTUP LOGIC ---
     try:
-        # Load model
         if settings.model_path.exists():
             with open(settings.model_path, 'rb') as f:
                 model = pickle.load(f)
             logger.info(f"✓ Model loaded successfully from {settings.model_path}")
         else:
             logger.error(f"✗ Model file not found at {settings.model_path}")
-            logger.error(f"  Looked for: {settings.model_path}")
             logger.error(f"  Available models directory contents:")
             models_dir = settings.model_path.parent
             if models_dir.exists():
                 for file in models_dir.iterdir():
                     logger.error(f"    - {file.name}")
-        
-        # Load preprocessor if it exists
-        if settings.preprocessor_path.exists():
-            with open(settings.preprocessor_path, 'rb') as f:
-                preprocessor = pickle.load(f)
-            logger.info(f"✓ Preprocessor loaded from {settings.preprocessor_path}")
-        else:
-            logger.warning(f"⚠ Preprocessor not found at {settings.preprocessor_path} (optional)")
-            
+                    
     except Exception as e:
         logger.error(f"✗ Error loading model: {e}", exc_info=True)
         raise
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on application shutdown."""
+    
+    yield  # The application runs while yielded
+    
+    # --- SHUTDOWN LOGIC ---
     logger.info("Application shutting down")
 
+# Initialize FastAPI app once with all configurations
+app = FastAPI(
+    title=settings.api_title,
+    version=settings.api_version,
+    description=settings.api_description,
+    debug=settings.debug,
+    lifespan=lifespan
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
+)
 
 @app.get("/", tags=["Health"])
 async def root():
@@ -151,16 +121,13 @@ async def root():
         "status": "running"
     }
 
-
 @app.get("/health", tags=["Health"])
 async def health():
     """Health check endpoint."""
     return {
         "status": "healthy",
-        "model_loaded": model is not None,
-        "preprocessor_loaded": preprocessor is not None
+        "model_loaded": model is not None
     }
-
 
 @app.get("/config", tags=["Info"])
 async def get_config():
@@ -171,27 +138,12 @@ async def get_config():
         "expected_features": settings.expected_features,
     }
 
-
 @app.post("/predict", tags=["Predictions"])
 async def predict(features: dict):
     """
     Make a prediction using the trained model.
-    
-    Expected input format with raw categorical values:
-    {
-        "Pclass": 3,
-        "Sex": "male",
-        "Age": 22.0,
-        "SibSp": 1,
-        "Parch": 0,
-        "Fare": 7.25,
-        "Embarked": "S",
-        "Title": "Mr"
-    }
-    
-    Note: Title is optional (defaults to "Unknown" if not provided)
     """
-    global model, preprocessor
+    global model
     
     if model is None:
         raise HTTPException(
@@ -203,9 +155,12 @@ async def predict(features: dict):
         # Preprocess features
         processed_features = preprocess_prediction_input(features)
         
+        # Convert to DataFrame to resolve Scikit-Learn UserWarning
+        input_df = pd.DataFrame([processed_features])
+            
         # Make prediction
-        prediction = model.predict([processed_features])
-        probability = model.predict_proba([processed_features])
+        prediction = model.predict(input_df)
+        probability = model.predict_proba(input_df)
         
         return {
             "prediction": int(prediction[0]),
@@ -229,7 +184,6 @@ async def predict(features: dict):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Prediction failed: {str(e)}"
         )
-
 
 if __name__ == "__main__":
     import uvicorn
