@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: titanic-api-deployment
-  labelo:
+  labels:
     app: titanic-api
 spec:
   replicas: 2
@@ -34,11 +34,11 @@ spec:
             httpGet:
               Path: /health
               port: 8000
-              initialDelaySeconds: 5
-              periodSeconds: 10
-          livelinessProbe:
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
             httpGet:
-              Path: /health
+              path: /health
               port: 8000
-              initialDelaySeconds: 10
-              periodSeconds: 15
+            initialDelaySeconds: 10
+            periodSeconds: 15
