@@ -13,6 +13,11 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    
+    env:
+      # Hardcoded to your DockerHub repository
+      IMAGE_NAME: rferns/titanic-api
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -56,9 +61,43 @@ jobs:
           python src/train.py --train-csv data/train.csv --model-output models/titanic_model.pkl
           python src/test.py --test-csv data/test.csv --model-path models/titanic_model.pkl --predictions-output outputs/test_predictions.csv
 
-      - name: Build Docker image with baked model
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker image
         run: |
-          docker build -t titanic-api:${{ github.sha }} -t titanic-api:latest .
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ env.IMAGE_NAME }}:latest .
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure Kubernetes context for Azure AKS
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBECONFIG_DATA }}
+
+      - name: Update Deployment Image Tag
+        run: |
+          # Inject the specific commit SHA into the deployment manifest
+          sed -i "s|image: titanic-api:latest|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/deployment.yaml
+
+      - name: Deploy to AKS
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/ingress.yaml
+          
+      - name: Verify Deployment Rollout
+        run: |
+          kubectl rollout status deployment/titanic-api-deployment --timeout=120s
 
       - name: Upload deployment artifacts
         uses: actions/upload-artifact@v4
