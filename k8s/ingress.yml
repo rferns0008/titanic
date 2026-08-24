@@ -9,7 +9,7 @@ spec:
     - host: titanic.local
       http:
         paths:
-          Path: /
+          path: /
           pathType: Prefix
           backend:
             service:
