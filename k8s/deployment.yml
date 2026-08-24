@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: titanic-api-deployment
+  labelo:
+    app: titanic-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: titanic-api
+  template:
+    metadata:
+      labels:
+        app: titanic-api
+    spec:
+      containers:
+        - name: titanic-api
+          image: rferns/titanic-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8000"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              Path: /health
+              port: 8000
+              initialDelaySeconds: 5
+              periodSeconds: 10
+          livelinessProbe:
+            httpGet:
+              Path: /health
+              port: 8000
+              initialDelaySeconds: 10
+              periodSeconds: 15
