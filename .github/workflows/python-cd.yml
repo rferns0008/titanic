@@ -15,51 +15,18 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      # Hardcoded to your DockerHub repository
       IMAGE_NAME: rferns/titanic-api
       
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Download CI Artifacts
+        uses: actions/download-artifact@v4
         with:
-          python-version: '3.12'
-          cache: 'pip'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
-          python -m pip install pytest
-          python -m pip install "dvc[s3]"
-
-      - name: Pull DVC data
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APP_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.B2_REGION }}
-        if: ${{ env.AWS_ACCESS_KEY_ID != '' && env.AWS_SECRET_ACCESS_KEY != '' }}
-        run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "Skipping DVC pull: Backblaze credentials are not configured."
-            exit 0
-          fi
-          dvc pull
-
-      - name: Run unit tests
-        env:
-          PYTHONPATH: src
-        run: |
-          python -m pytest src/tests
-
-      - name: Train model and generate predictions
-        env:
-          SKIP_DVC_PULL: 'true'
-        run: |
-          python src/train.py --train-csv data/train.csv --model-output models/titanic_model.pkl
-          python src/test.py --test-csv data/test.csv --model-path models/titanic_model.pkl --predictions-output outputs/test_predictions.csv
+          name: build-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
@@ -85,9 +52,7 @@ jobs:
           kubeconfig: ${{ secrets.KUBECONFIG_DATA }}
 
       - name: Update Deployment Image Tag
-        run: |
-          # Inject the specific commit SHA into the deployment manifest
-          sed -i "s|image: titanic-api:latest|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/deployment.yml
+        run: sed -i "s|image: titanic-api:latest|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/deployment.yml
 
       - name: Deploy to AKS
         run: |
@@ -96,13 +61,4 @@ jobs:
           kubectl apply -f k8s/ingress.yml
           
       - name: Verify Deployment Rollout
-        run: |
-          kubectl rollout status deployment/titanic-api-deployment --timeout=120s
-
-      - name: Upload deployment artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: titanic-artifacts
-          path: |
-            models/titanic_model.pkl
-            outputs/test_predictions.csv
+        run: kubectl rollout status deployment/titanic-api-deployment --timeout=120s
