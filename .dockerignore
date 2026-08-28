@@ -30,3 +30,6 @@ notebooks/
 .pytest_cache/
 .coverage
 htmlcov/x₹x₹
+
+kubeconfig.yaml
+.kubeonfig
