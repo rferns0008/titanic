@@ -154,7 +154,7 @@ Example:
 ```bash
 python src/predict.py \
   --model-path models/titanic_model.pkl \
-  --record "{"Name": "Smith, Master. Thomas", "Pclass": 3, "Sex": "male", "Age": 8.0, "SibSp": 1, "Parch": 1, "Fare": 50.0, "Embarked": "S"}"
+  --record '{"Name": "Smith, Master. Thomas", "Pclass": 3, "Sex": "male", "Age": 8.0, "SibSp": 1, "Parch": 1, "Fare": 50.0, "Embarked": "S"}'
 ```
 
 Output:
