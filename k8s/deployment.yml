@@ -17,7 +17,7 @@ spec:
       containers:
         - name: titanic-api
           image: rferns/titanic-api:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           env:
