@@ -53,7 +53,7 @@ jobs:
 
       - name: Update Deployment Image Tag
         run: | 
-          sed -i "s|image: titanic-api:latest|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/deployment.yml
+          sed -i "s|image: rferns/titanic-api:latest|image: ${{ env.IMAGE_NAME }}:${{ github.sha }}|g" k8s/deployment.yml
 
       - name: Deploy to AKS
         run: |
