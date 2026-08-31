@@ -6,6 +6,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import pickle
+import re
 from contextlib import asynccontextmanager
 import pandas as pd
 from config import settings
