@@ -33,7 +33,18 @@ def preprocess_prediction_input(features: dict) -> list:
         parch = int(features.get("Parch", 0))
         fare = float(features.get("Fare", 0.0))
         embarked_str = str(features.get("Embarked", "S")).upper()
-        title_str = str(features.get("Title", "Unknown"))
+        name = features.get("Name", "")
+        title_str = features.get("Title")
+
+        if not title_str and name:
+            # Extract title using regex (e.g., finding "Miss.", "Mr.", etc.)
+            match = re.search(r' ([A-Za-z]+)\.', name)
+            if match:
+                title_str = match.group(1)
+            else:
+                title_str = "Unknown"
+        elif not title_str:
+            title_str = "Unknown"
         
         # Map categorical features
         sex = settings.sex_mapping.get(sex_str)
